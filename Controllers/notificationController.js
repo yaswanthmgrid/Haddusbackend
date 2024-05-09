@@ -17,7 +17,6 @@ const registerNotification = async (userId) => {
       console.error("User permission denied");
       return;
     }
-    // Construct notification data
     const notificationData = {
       title: "🎉 Welcome to Haddus!",
       body: `Hi ${
@@ -25,7 +24,6 @@ const registerNotification = async (userId) => {
       }, we're thrilled to have you on board! Start exploring now and make the most of your experience!`,
     };
 
-    // Send notification
     await sendNotificationToDevice(
       userDoc.data().DeviceToken,
       notificationData
@@ -40,7 +38,6 @@ const registerNotification = async (userId) => {
 
 const sendOrderNotification = async (userId, orderId) => {
   try {
-    // Fetch user document from Firestore
     const userDoc = await admin
       .firestore()
       .collection("users")
@@ -49,14 +46,13 @@ const sendOrderNotification = async (userId, orderId) => {
 
     if (!userDoc.exists) {
       console.error("User not found");
-      return; // Do not proceed if user not found
+      return;
     }
     const userData = userDoc.data();
     if (!userData.permission) {
       console.error("User permission denied");
       return;
     }
-    // Construct notification data
     const notificationData = {
       title: "Order Placed",
       body: `Hi ${
@@ -64,7 +60,6 @@ const sendOrderNotification = async (userId, orderId) => {
       }, your order (${orderId}) has been successfully placed. Enjoy your meal!`,
     };
 
-    // Send notification
     await sendNotificationToDevice(
       userDoc.data().DeviceToken,
       notificationData
@@ -129,7 +124,6 @@ const discountNotification = async (userId, category, applicable, percent) => {
       console.error("User permission denied");
       return;
     }
-    // Construct notification data
     const notificationData = {
       title: "🍴😋😋 Unlock Delicious Discounts! Savor Your Meal!",
       body: `Hi ${
@@ -137,8 +131,6 @@ const discountNotification = async (userId, category, applicable, percent) => {
       }, your taste buds are in for a treat! Unlock a delicious ${percent}% off on our mouthwatering ${category} ${applicable}. Don't miss out—savor the flavors now!
 `,
     };
-
-    // Send notification
     await sendNotificationToDevice(
       userDoc.data().DeviceToken,
       notificationData
@@ -153,7 +145,6 @@ const discountNotification = async (userId, category, applicable, percent) => {
 
 const sendNotificationToDevice = async (deviceToken, notificationData) => {
   try {
-    // Construct message
     const message = {
       token: deviceToken,
       notification: {
@@ -161,8 +152,6 @@ const sendNotificationToDevice = async (deviceToken, notificationData) => {
         body: notificationData.body,
       },
     };
-
-    // Send push notification
     const response = await admin.messaging().send(message);
     console.log("Notification sent:", response);
   } catch (error) {

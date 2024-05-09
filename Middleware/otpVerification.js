@@ -74,6 +74,74 @@ const generateOTP = async (req, res) => {
   }
 };
 
+const AdmingenerateOTP = async (req, res) => {
+  try {
+    const { email } = req.params;
+
+    if (!isValidEmail(email)) {
+      return res.status(400).send({ message: "Invalid email address" });
+    }
+    const userSnapshot = await db
+      .collection("admins")
+      .where("email", "==", email)
+      .get();
+    if (userSnapshot.empty) {
+      return res.status(200).send({
+        message: `Invalid Admin Email,please use the exsisting email`,
+      });
+    }
+
+    // Check if OTP document exists for the email
+    const otpDocRef = db.collection("otp").doc(email);
+    const otpDoc = await otpDocRef.get();
+
+    // Set OTP expiration time and generate the OTP
+    const OTP_EXPIRATION_TIME = 10 * 60 * 1000; // 2 minutes in milliseconds
+    const OTP_DELTE_TIME = 20 * 60 * 1000;
+    const otp = generateRandomOTP(); // Generate a random 4-digit OTP
+    const expirationTime = Date.now() + OTP_EXPIRATION_TIME; // Calculate expiration time
+
+    // Prepare the data for the OTP document
+    const otpData = {
+      email: email,
+      otp: otp,
+      expirationTime: new Date(expirationTime),
+      Status: true,
+    };
+
+    if (otpDoc.exists) {
+      // Update existing document
+      await otpDocRef.update(otpData);
+    } else {
+      // Create a new OTP document
+      await otpDocRef.set(otpData);
+    }
+
+    // Calculate the expiration time in minutes for the email
+    const time = OTP_EXPIRATION_TIME / 60000;
+
+    // Schedule a task to update the OTP status to false after expiration time
+    const timeoutId = setTimeout(async () => {
+      await otpDocRef.update({ Status: false });
+      console.log("OTP expired");
+    }, OTP_EXPIRATION_TIME);
+    const deletetimeoutId = setTimeout(async () => {
+      await otpDocRef.delete();
+    }, OTP_DELTE_TIME);
+
+    // Store the timeout ID in the document for potential use later
+    await otpDocRef.update({ timeoutId: String(timeoutId) });
+    await sendEmail(email, otp, time);
+
+    res.status(200).send({ message: `OTP has been sent: to ${email} email` });
+  } catch (error) {
+    console.error("Error generating OTP: " + error.message);
+    return res
+      .status(500)
+      .send({ message: `Error generating OTP: ${error.message}` });
+  }
+};
+
 // Function to validate email format
 const isValidEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -145,4 +213,5 @@ const validateOTP = async (req, res) => {
 module.exports = {
   generateOTP,
   validateOTP,
+  AdmingenerateOTP,
 };
