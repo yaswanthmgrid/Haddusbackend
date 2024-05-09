@@ -1,4 +1,3 @@
-//Seperate routes for admin and user like update product ;get-order,products,cart
 const express = require("express");
 const cors = require("cors");
 const userroutes = require("./routes/userRoutes");
