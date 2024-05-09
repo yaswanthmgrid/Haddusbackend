@@ -11,20 +11,17 @@ const moment = require("moment");
 const updateProducts = async (allUpdatedProducts, discountAmount) => {
   const updatedProducts = [];
 
-  // Iterate over each product in the allUpdatedProducts array
   for (const product of allUpdatedProducts) {
     const taxedPrice = product.taxedPrice;
     const discountedAmount = (discountAmount / 100) * taxedPrice;
     let discountPrice = taxedPrice - discountedAmount;
     discountPrice = Math.ceil(discountPrice);
 
-    // Update the Discount and DiscountPrice fields for each product
     await db.collection("products").doc(product.id).update({
       Discount: discountAmount,
       DiscountPrice: discountPrice,
     });
 
-    // Add the updated product details to the array
     const updatedProduct = {
       id: product.id,
       name: product.name,
@@ -33,22 +30,18 @@ const updateProducts = async (allUpdatedProducts, discountAmount) => {
     updatedProducts.push(updatedProduct);
   }
 
-  // Return the array of updated products
   return updatedProducts;
 };
 
 const resetProducts = async (allUpdatedProducts) => {
   const resetProductsArray = [];
 
-  // Iterate over each product in the allUpdatedProducts array
   for (const product of allUpdatedProducts) {
-    // Reset the discount and discount price for each product
     await db.collection("products").doc(product.id).update({
       Discount: 0,
       DiscountPrice: 0,
     });
 
-    // Add the reset product details to the array
     const resetProduct = {
       id: product.id,
       name: product.name,
@@ -57,7 +50,6 @@ const resetProducts = async (allUpdatedProducts) => {
     resetProductsArray.push(resetProduct);
   }
 
-  // Return the array of reset products
   return resetProductsArray;
 };
 
@@ -66,50 +58,39 @@ const updateCarts = async (cartsSnapshot, updatedProducts) => {
     const cartData = cartDoc.data();
     let newBill = 0;
 
-    // Iterate through each product in the cart
     if (cartData.products && Array.isArray(cartData.products)) {
       cartData.products.forEach((product) => {
-        // Find the corresponding updated product from updatedProducts
         const updatedProduct = updatedProducts.find(
           (p) => p.id === product.productId
         );
 
-        // If an updated product is found
         if (updatedProduct) {
-          // Update product's price field based on the available data
           const discountPrice = updatedProduct.DiscountPrice || 0;
           const taxedPrice = updatedProduct.taxedPrice || 0;
 
-          // Determine the new price
           if (discountPrice > 0) {
             product.price = discountPrice;
           } else {
             product.price = taxedPrice;
           }
 
-          // Calculate price2: price * quantity plus add-ons price
           product.price2 = product.price * product.quantity;
           if (product.addOns && Array.isArray(product.addOns)) {
             product.addOns.forEach((addon) => {
               product.price2 += addon.price * product.quantity;
             });
           }
-
-          // Add the product's price2 to the new bill
           newBill += product.price2;
         } else {
-          // Update product's price field based on the available data
           const discountPrice = product.DiscountPrice || 0;
           const taxedPrice = product.taxedPrice || 0;
 
-          // Determine the new price
           if (discountPrice > 0) {
             product.price = discountPrice;
           } else {
             product.price = taxedPrice;
           }
 
-          // Calculate price2: price * quantity plus add-ons price
           product.price2 = product.price * product.quantity;
           if (product.addOns && Array.isArray(product.addOns)) {
             product.addOns.forEach((addon) => {
@@ -117,18 +98,15 @@ const updateCarts = async (cartsSnapshot, updatedProducts) => {
             });
           }
 
-          // Add the product's price2 to the new bill
           newBill += product.price2;
         }
       });
 
-      // Prepare the data to be updated in the Firestore document
       const updateData = {
         products: cartData.products,
         bill: newBill,
       };
 
-      // Optional: Update other cart fields if they exist
       if (cartData.Finalbill !== undefined) {
         updateData.Finalbill = cartData.Finalbill;
       }
@@ -139,24 +117,19 @@ const updateCarts = async (cartsSnapshot, updatedProducts) => {
         updateData.couponAmount = cartData.couponAmount;
       }
 
-      // Update the cart document in Firestore
       await cartDoc.ref.update(updateData);
     } else {
       console.log(`No products found for cart: ${cartDoc.id}`);
     }
   });
 
-  // Wait for all cart updates to complete
   await Promise.all(cartsToUpdatePromises);
 };
 
 const resetCarts = async (cartsSnapshot, resetProductsArray) => {
-  // Iterate over each cart document
   const cartsResetPromises = cartsSnapshot.docs.map(async (cartDoc) => {
     const cartData = cartDoc.data();
     let newBill = 0;
-
-    // Check if cartData.products exists and iterate over them
     if (cartData.products && Array.isArray(cartData.products)) {
       cartData.products.forEach((product) => {
         const resetProduct = resetProductsArray.find(
@@ -164,18 +137,15 @@ const resetCarts = async (cartsSnapshot, resetProductsArray) => {
         );
 
         if (resetProduct) {
-          // Reset price and price2 for the product in the cart
           product.price = resetProduct.taxedPrice || 0;
           product.price2 = product.price * product.quantity;
         }
       });
 
-      // Recalculate the bill for the cart
       cartData.products.forEach((product) => {
         newBill += product.price2;
       });
 
-      // Update bill for the cart
       await cartDoc.ref.update({
         products: cartData.products,
         bill: newBill,
@@ -188,7 +158,6 @@ const resetCarts = async (cartsSnapshot, resetProductsArray) => {
     }
   });
 
-  // Wait for all cart resets to complete
   await Promise.all(cartsResetPromises);
 };
 
@@ -251,9 +220,7 @@ const createDiscount = async (req, res) => {
 
     switch (applicablefor) {
       case "category":
-        // Iterate through each applicable input element (category name)
         for (let element of applicableinput) {
-          // Fetch the category data
           const categorySnapshot = await db
             .collection("categories")
             .where("name", "==", element)
@@ -265,11 +232,8 @@ const createDiscount = async (req, res) => {
             });
           }
 
-          // Get the category name and ID
           const categoryName = categorySnapshot.docs[0].data().name;
           const categoryId = categorySnapshot.docs[0].id;
-
-          // Fetch existing discounts for the category with condition "All" products
           const existingDiscountSnapshot = await db
             .collection("discounts")
             .where("Category", "==", categoryName)
@@ -277,7 +241,6 @@ const createDiscount = async (req, res) => {
             .get();
 
           if (!existingDiscountSnapshot.empty) {
-            // Handle the existing discount case
             const existingDiscountDoc = existingDiscountSnapshot.docs[0];
             const existingDiscountId = existingDiscountDoc.id;
             const existingDiscountRef = db
@@ -285,7 +248,6 @@ const createDiscount = async (req, res) => {
               .doc(existingDiscountId);
 
             try {
-              // Update existing discount details
               await existingDiscountRef.update({
                 DiscountAmount: discountamount,
                 FromDate: fromdate,
@@ -303,14 +265,11 @@ const createDiscount = async (req, res) => {
 
               const allUpdatedProducts = [];
 
-              // Iterate through existing subcategories and gather products
               for (let subcategory of subcategoriesData) {
-                // Update subcategory details
                 subcategory.DiscountAmount = discountamount;
                 subcategory.FromDate = fromdate;
                 subcategory.ToDate = todate;
 
-                // Fetch the products for the current subcategory
                 const productsSnapshot = await db
                   .collection("products")
                   .where(
@@ -320,7 +279,6 @@ const createDiscount = async (req, res) => {
                   )
                   .get();
 
-                // Gather products into allUpdatedProducts array
                 if (productsSnapshot && productsSnapshot.docs) {
                   productsSnapshot.docs.forEach((productDoc) => {
                     allUpdatedProducts.push({
@@ -335,11 +293,10 @@ const createDiscount = async (req, res) => {
                 }
               }
 
-              // Calculate update and reset delays
               const updateDelay = moment(Inputfromdate).diff(moment());
               const resetDelay = moment(Inputtodate).diff(moment());
               console.log(updateDelay, resetDelay);
-              // Define the update function
+
               const updateFunction = async () => {
                 await discountNotification(
                   userId,
@@ -349,19 +306,16 @@ const createDiscount = async (req, res) => {
                 );
                 console.log("Updating Products...");
 
-                // Use the allUpdatedProducts array to update products
                 const updatedProducts = await updateProducts(
                   allUpdatedProducts,
                   discountamount
                 );
                 console.log("Products updated.");
 
-                // Update carts using the updated products array
                 const cartsSnapshot = await db.collection("carts").get();
                 await updateCarts(cartsSnapshot, updatedProducts);
 
                 console.log("Updating subcategories...");
-                // Update discount document with subcategories set to active
                 await existingDiscountRef.update({
                   subcategories: subcategoriesData.map((sub) => ({
                     ...sub,
@@ -373,21 +327,18 @@ const createDiscount = async (req, res) => {
                 console.log("Subcategories updated.");
               };
 
-              // Define the reset function
               const resetFunction = async () => {
                 console.log("Resetting Products...");
 
-                // Use the allUpdatedProducts array to reset products
                 const resetProductsArray = await resetProducts(
                   allUpdatedProducts
                 );
 
-                // Reset carts using the reset products array
                 const cartsSnapshot = await db.collection("carts").get();
                 await resetCarts(cartsSnapshot, resetProductsArray);
 
                 console.log("Resetting subcategories and discount document...");
-                // Reset discount document and subcategories to inactive
+
                 await existingDiscountRef.update({
                   subcategories: subcategoriesData.map((sub) => ({
                     ...sub,
@@ -399,17 +350,14 @@ const createDiscount = async (req, res) => {
                 console.log("Subcategories and discount document reset.");
               };
 
-              // Schedule the update and reset functions using setTimeout
               const updateTimeoutId = setTimeout(updateFunction, updateDelay);
               const resetTimeoutId = setTimeout(resetFunction, resetDelay);
 
-              // Update subcategory data with new timeout IDs
               subcategoriesData.forEach((sub) => {
                 sub.updateTimeoutId = String(updateTimeoutId);
                 sub.resetTimeoutId = String(resetTimeoutId);
               });
 
-              // Update the discount document with new timeout IDs
               await existingDiscountRef.update({
                 subcategories: subcategoriesData,
               });
@@ -426,12 +374,9 @@ const createDiscount = async (req, res) => {
               .where("category", "==", db.doc(`/categories/${categoryId}`))
               .get();
 
-            // Array to store subcategory details
             const subcategories = [];
-            // Array to store all products from all subcategories
             const allUpdatedProducts = [];
 
-            // Iterate through each subcategory and gather products
             for (const subcategoryDoc of subcategoriesSnapshot.docs) {
               const subcategoryData = subcategoryDoc.data();
               const subcategoryId = subcategoryDoc.id;
@@ -472,12 +417,9 @@ const createDiscount = async (req, res) => {
                 active: false, // Setting active to false initially
               });
             }
-
-            // Calculate the time delays for update and reset operations
             const updateDelay = moment(Inputfromdate).diff(moment());
             const resetDelay = moment(Inputtodate).diff(moment());
 
-            // Create the discount object
             const validInput = {
               Category: categoryName,
               DiscountAmount: discountamount,
@@ -488,15 +430,12 @@ const createDiscount = async (req, res) => {
               Category: categoryName,
               subcategories: subcategories || [],
             };
-
-            // Add the discount to the database
             const discountRef = await db
               .collection("discounts")
               .add(Object.assign({}, validInput));
             const discountId = discountRef.id;
             const discountDocRef = db.collection("discounts").doc(discountId);
 
-            // Define the update function
             const updateFunction = async () => {
               await discountNotification(
                 userId,
@@ -506,19 +445,16 @@ const createDiscount = async (req, res) => {
               );
               console.log("Updating Products...");
 
-              // Use the allUpdatedProducts array to update products
               const updatedProducts = await updateProducts(
                 allUpdatedProducts,
                 discountamount
               );
               console.log(updateProducts);
 
-              // Update carts using the updated products array
               const cartsSnapshot = await db.collection("carts").get();
               await updateCarts(cartsSnapshot, updatedProducts);
 
               console.log("Updating subcategories...");
-              // Update discount document with subcategories set to active
               await discountDocRef.update({
                 subcategories: subcategories.map((sub) => ({
                   ...sub,
@@ -530,21 +466,18 @@ const createDiscount = async (req, res) => {
               console.log("Subcategories updated.");
             };
 
-            // Define the reset function
             const resetFunction = async () => {
               console.log("Resetting Products...");
 
-              // Use the allUpdatedProducts array to reset products
               const resetProductsArray = await resetProducts(
                 allUpdatedProducts
               );
 
-              // Reset carts using the reset products array
               const cartsSnapshot = await db.collection("carts").get();
               await resetCarts(cartsSnapshot, resetProductsArray);
 
               console.log("Resetting subcategories and discount document...");
-              // Reset discount document and subcategories to inactive
+
               await discountDocRef.update({
                 subcategories: subcategories.map((sub) => ({
                   ...sub,
@@ -556,11 +489,9 @@ const createDiscount = async (req, res) => {
               console.log("Subcategories and discount document reset.");
             };
 
-            // Schedule the update and reset functions using setTimeout
             const updateTimeoutId = setTimeout(updateFunction, updateDelay);
             const resetTimeoutId = setTimeout(resetFunction, resetDelay);
 
-            // Store the timeouts in subcategories array
             subcategories.forEach((subcategory) => {
               subcategory.updateTimeoutId = String(updateTimeoutId);
               subcategory.resetTimeoutId = String(resetTimeoutId);
@@ -577,7 +508,6 @@ const createDiscount = async (req, res) => {
           let discountCreated = false;
           let subcategoryDoc;
 
-          // Iterate through each applicable input subcategory
           for (let subcategory of applicableinput) {
             // Fetch the subcategory document
             const subcategorySnapshot = await db
@@ -920,7 +850,6 @@ const createDiscount = async (req, res) => {
             }
           }
 
-          // Send appropriate response
           if (discountCreated) {
             return res.status(200).send({ message: `Discount Created` });
           } else {
@@ -944,18 +873,13 @@ const createDiscount = async (req, res) => {
 
 const getallDiscount = async (req, res) => {
   try {
-    // Retrieve all documents from the "discounts" collection
     const discountSnapshot = await db.collection("discounts").get();
 
-    // Initialize an array to store the discounts
     const discounts = [];
 
-    // Loop through each document in the snapshot
     discountSnapshot.forEach((doc) => {
-      // Get the data of each document
       const discountData = doc.data();
       const discountId = doc.id;
-      // Convert Firestore timestamps into date and time format
       const fromDate = moment
         .utc(discountData.FromDate.toDate())
         .add(5, "hours")
@@ -968,12 +892,8 @@ const getallDiscount = async (req, res) => {
         .add(30, "minutes")
         .toDate();
 
-      // Initialize an array to store subcategories
       const subcategories = [];
-
-      // Loop through each subcategory in the discountData
       discountData.subcategories.forEach((subcategory) => {
-        // Convert subcategory timestamps into date and time format
         const subFromDate = moment
           .utc(subcategory.FromDate.toDate())
           .add(5, "hours")
@@ -986,7 +906,6 @@ const getallDiscount = async (req, res) => {
           .add(30, "minutes")
           .toDate();
 
-        // Create a subcategory object with the retrieved data
         const subcategoryObj = {
           name: subcategory.name,
           discount: subcategory.DiscountAmount,
@@ -995,11 +914,9 @@ const getallDiscount = async (req, res) => {
           active: subcategory.active,
         };
 
-        // Push the subcategory object to the subcategories array
         subcategories.push(subcategoryObj);
       });
 
-      // Create a discount object with the retrieved data including subcategories
       const discount = {
         dicountId: discountId,
         Category: discountData.Category,
@@ -1009,20 +926,15 @@ const getallDiscount = async (req, res) => {
         active: discountData.active,
         subcategories: subcategories,
       };
-
-      // Push the discount object to the discounts array
       discounts.push(discount);
     });
 
-    // If there are no discounts, send a message
     if (discounts.length === 0) {
       res.status(200).send({ message: "No Discounts found" });
     } else {
-      // Otherwise, send all discounts
       res.status(200).send({ message: "All Discounts", Discounts: discounts });
     }
   } catch (error) {
-    // If an error occurs, send an error response
     res.status(200).send("Error getting Discounts: " + error.message);
   }
 };
@@ -1032,7 +944,6 @@ const updateDiscount = async (req, res) => {
     const { discountId } = req.params;
     const { discountamount, fromdate, todate } = req.body;
 
-    // Validate input
     if (!discountId) {
       return res
         .status(200)
@@ -1054,7 +965,6 @@ const updateDiscount = async (req, res) => {
         .send({ message: "From date must be in the future" });
     }
 
-    // Retrieve the existing discount document
     const discountDocRef = db.collection("discounts").doc(discountId);
     const discountDoc = await discountDocRef.get();
 
@@ -1066,7 +976,6 @@ const updateDiscount = async (req, res) => {
 
     const existingDiscountData = discountDoc.data();
 
-    // Convert dates to UTC
     const fromDate = moment.utc(fromdate).toDate();
     const toDate = moment.utc(todate).toDate();
     console.log(`111111`, fromDate, toDate);
@@ -1088,37 +997,32 @@ const updateDiscount = async (req, res) => {
     const updateDelay = moment(formattedfromdate).diff(moment());
     const resetDelay = moment(formattedinputtodate).diff(moment());
     console.log(updateDelay, resetDelay);
-    // Update discount document
+
     await discountDocRef.update({
       DiscountAmount: discountamount,
       FromDate: inputfromdate,
       ToDate: inputtodate,
-      active: false, // Initially set to false, will be updated during the process
+      active: false,
     });
 
-    // Handle existing subcategories
     const subcategoriesData = existingDiscountData.subcategories || [];
 
     const allUpdatedProducts = [];
     const allResetProducts = [];
 
     for (let subcategory of subcategoriesData) {
-      // Clear existing timeouts for each subcategory
       clearTimeout(Number(subcategory.updateTimeoutId));
       clearTimeout(Number(subcategory.resetTimeoutId));
 
-      // Update subcategory details
       subcategory.DiscountAmount = discountamount;
       subcategory.FromDate = inputfromdate;
       subcategory.ToDate = inputtodate;
       subcategory.active = false;
-      // Fetch products for the subcategory
       const productsSnapshot = await db
         .collection("products")
         .where("subcategory", "==", db.doc(`/subcategories/${subcategory.id}`))
         .get();
 
-      // Gather products for updating and resetting
       if (productsSnapshot && productsSnapshot.docs) {
         const products = productsSnapshot.docs.map((doc) => ({
           id: doc.id,
@@ -1132,20 +1036,16 @@ const updateDiscount = async (req, res) => {
         try {
           console.log(`Updating products for subcategory: ${subcategory.name}`);
 
-          // Update products
           const updatedProducts = await updateProducts(
             allUpdatedProducts,
             discountamount
           );
 
-          // Update carts
           const cartsSnapshot = await db.collection("carts").get();
           await updateCarts(cartsSnapshot, updatedProducts);
 
-          // Update the relevant subcategory to active
           subcategory.active = true;
 
-          // Update the discount document with the modified subcategoriesData
           await discountDocRef.update({
             subcategories: subcategoriesData,
             active: true,
@@ -1167,17 +1067,13 @@ const updateDiscount = async (req, res) => {
             `Resetting products for subcategory: ${subcategory.name}`
           );
 
-          // Reset products
           const resetProductsArray = await resetProducts(allResetProducts);
 
-          // Reset carts
           const cartsSnapshot = await db.collection("carts").get();
           await resetCarts(cartsSnapshot, resetProductsArray);
 
-          // Reset the relevant subcategory to inactive
           subcategory.active = false;
 
-          // Update the discount document with the modified subcategoriesData
           await discountDocRef.update({
             subcategories: subcategoriesData,
             active: false,
@@ -1201,7 +1097,6 @@ const updateDiscount = async (req, res) => {
       subcategory.resetTimeoutId = String(resetTimeoutId);
     }
 
-    // Update the discount document with the updated subcategories
     await discountDocRef.update({
       subcategories: subcategoriesData,
     });
@@ -1272,13 +1167,11 @@ const updateDiscountStatus = async (req, res) => {
         updatedSubcategoriesPromises
       );
 
-      // Update discount document
       await discountDocRef.update({
         subcategories: updatedSubcategoriesData,
         active: newStatus,
       });
 
-      // Perform reset operations based on allUpdatedProducts
       const resetProductsArray = await resetProducts(allUpdatedProducts);
       const cartsSnapshot = await db.collection("carts").get();
       await resetCarts(cartsSnapshot, resetProductsArray);
@@ -1345,7 +1238,6 @@ const updateDiscountStatus = async (req, res) => {
           console.log(`Resetting products and carts for all subcategories.`);
 
           for (const subcategory of subcategoriesData) {
-            // Fetch products for the current subcategory
             const productsSnapshot = await db
               .collection("products")
               .where(
@@ -1362,18 +1254,14 @@ const updateDiscountStatus = async (req, res) => {
               })
             );
 
-            // Reset products
             await resetProducts(resetProductsArray);
 
-            // Reset carts
             const cartsSnapshot = await db.collection("carts").get();
             await resetCarts(cartsSnapshot, resetProductsArray);
 
-            // Set subcategory active status to false
             subcategory.active = false;
           }
 
-          // Set the discount document active status to false and update subcategories data
           await discountDocRef.update({
             subcategories: subcategoriesData,
             active: false,
@@ -1382,15 +1270,12 @@ const updateDiscountStatus = async (req, res) => {
           console.log(`Products and carts reset for all subcategories.`);
         };
 
-        // Schedule the reset function based on resetDelay
         const resetTimeoutId = setTimeout(resetFunction, resetDelay);
 
-        // Update the reset timeout ID for each subcategory
         subcategoriesData.forEach((subcategory) => {
           subcategory.resetTimeoutId = String(resetTimeoutId);
         });
 
-        // Update the discount document with the modified subcategories data
         await discountDocRef.update({
           subcategories: subcategoriesData,
         });
@@ -1418,11 +1303,9 @@ const updateSubcategoryDiscount = async (req, res) => {
     const { discountId, subcategoryid } = req.params;
     const { discountamount, fromDate, toDate } = req.body;
 
-    // Fetch the discount document
     const discountDocRef = db.collection("discounts").doc(discountId);
     const discountDocSnapshot = await discountDocRef.get();
 
-    // Validate discount document existence
     if (!discountDocSnapshot.exists) {
       return res
         .status(200)
@@ -1431,7 +1314,6 @@ const updateSubcategoryDiscount = async (req, res) => {
 
     const discountData = discountDocSnapshot.data();
 
-    // Validate input data
     if (discountamount <= 0 || discountamount >= 100) {
       return res
         .status(200)
@@ -1448,7 +1330,6 @@ const updateSubcategoryDiscount = async (req, res) => {
         .send({ message: "From date must be in the future" });
     }
 
-    // Convert input dates to UTC and adjust time zones if necessary
     const inputfromdate = moment(fromDate)
       .utc()
       .subtract(5, "hours")
@@ -1473,18 +1354,15 @@ const updateSubcategoryDiscount = async (req, res) => {
       .toDate();
     console.log(formattedfromdate, formattedinputtodate, `111111111111111`);
 
-    // Fetch the subcategory document
     const subcategoryDocRef = db.collection("subcategories").doc(subcategoryid);
     const subcategoryDocSnapshot = await subcategoryDocRef.get();
 
-    // Validate subcategory document existence
     if (!subcategoryDocSnapshot.exists) {
       return res.status(200).send({ message: "Subcategory not found" });
     }
 
     const subcategoryData = subcategoryDocSnapshot.data();
 
-    // Fetch products associated with the subcategory
     const allUpdatedProducts = [];
     const productsSnapshot = await db
       .collection("products")
@@ -1499,8 +1377,6 @@ const updateSubcategoryDiscount = async (req, res) => {
         });
       });
     }
-
-    // Update discount dates if necessary
     if (
       moment(inputfromdate).isAfter(discountData.FromDate) ||
       moment(inputtodate).isAfter(discountData.ToDate)
@@ -1511,7 +1387,6 @@ const updateSubcategoryDiscount = async (req, res) => {
       });
     }
 
-    // Update subcategory discount
     const subcategories = discountData.subcategories || [];
     const subcategoryIndex = subcategories.findIndex(
       (sub) => sub.id === subcategoryid
@@ -1520,21 +1395,17 @@ const updateSubcategoryDiscount = async (req, res) => {
     if (subcategoryIndex !== -1) {
       const subcategory = subcategories[subcategoryIndex];
 
-      // Clear existing timeouts
       clearTimeout(Number(subcategory.updateTimeoutId));
       clearTimeout(Number(subcategory.resetTimeoutId));
 
-      // Update subcategory details
       subcategory.DiscountAmount = discountamount;
       subcategory.FromDate = inputfromdate;
       subcategory.ToDate = inputtodate;
 
-      // Calculate update and reset delays
-
       const updateDelay = moment(formattedfromdate).diff(moment());
       const resetDelay = moment(formattedinputtodate).diff(moment());
       console.log(`updateDelay :${updateDelay},resetdelay :${resetDelay}`);
-      // Define update and reset functions
+
       const updateFunction = async () => {
         console.log(`Updating products for subcategory: ${subcategory.name}`);
         const updatedProducts = await updateProducts(
@@ -1543,12 +1414,10 @@ const updateSubcategoryDiscount = async (req, res) => {
         );
         console.log(`Products updated for subcategory: ${subcategory.name}`);
 
-        // Update carts
         const cartsSnapshot = await db.collection("carts").get();
         await updateCarts(cartsSnapshot, updatedProducts);
         console.log(`Carts updated for subcategory: ${subcategory.name}`);
 
-        // Update subcategories and set active state
         const newSubcategories = subcategories.map((sub) => ({
           ...sub,
           active: sub.id === subcategory.id ? true : sub.active,
@@ -1564,18 +1433,15 @@ const updateSubcategoryDiscount = async (req, res) => {
         const resetProductsArray = await resetProducts(allUpdatedProducts);
         console.log(`Products reset for subcategory: ${subcategory.name}`);
 
-        // Reset carts
         const cartsSnapshot = await db.collection("carts").get();
         await resetCarts(cartsSnapshot, resetProductsArray);
         console.log(`Carts reset for subcategory: ${subcategory.name}`);
 
-        // Update subcategories and set inactive state for the subcategory
         subcategory.active = false;
         await discountDocRef.update({
           subcategories,
         });
 
-        // Check if all subcategories are inactive
         const allSubcategoriesInactive = subcategories.every(
           (sub) => !sub.active
         );
@@ -1590,7 +1456,6 @@ const updateSubcategoryDiscount = async (req, res) => {
         }
       };
 
-      // Set timeouts for update and reset functions
       subcategory.updateTimeoutId = String(
         setTimeout(updateFunction, updateDelay)
       );
@@ -1598,7 +1463,6 @@ const updateSubcategoryDiscount = async (req, res) => {
         setTimeout(resetFunction, resetDelay)
       );
 
-      // Update the discount document with the updated subcategory details
       subcategories[subcategoryIndex] = subcategory;
       await discountDocRef.update({
         subcategories,
@@ -1616,158 +1480,10 @@ const updateSubcategoryDiscount = async (req, res) => {
   }
 };
 
-// const updateSubcategoryStatus = async (req, res) => {
-//   try {
-//     const { discountId, subcategoryid } = req.params;
-
-//     // Validate input
-//     if (!discountId) {
-//       return res.status(200).send({ message: "Discount Id is required." });
-//     }
-//     if (!subcategoryid) {
-//       return res.status(200).send({ message: "Subcategory Id is required." });
-//     }
-
-//     // Retrieve discount document
-//     const discountDocRef = db.collection("discounts").doc(discountId);
-//     const discountSnapshot = await discountDocRef.get();
-
-//     if (!discountSnapshot.exists) {
-//       return res.status(200).send({ message: "Discount not found." });
-//     }
-
-//     const discountData = discountSnapshot.data();
-//     const currentDate = moment();
-//     const ToDate = moment(discountData.ToDate.toDate())
-//       .utc()
-//       .add(5, "hours")
-//       .add(30, "minutes");
-//     console.log(`current:`, currentDate, `TOdate`, ToDate);
-//     // Find the specified subcategory
-//     const subcategory = discountData.subcategories.find(
-//       (sub) => sub.id === subcategoryid
-//     );
-
-//     if (!subcategory) {
-//       return res.status(200).send({
-//         message: "Subcategory not found in the discount document.",
-//       });
-//     }
-
-//     const currentStatus = subcategory.active;
-
-//     // Determine the new status and perform checks for activating
-//     if (!currentStatus) {
-//       if (!ToDate.isAfter(currentDate)) {
-//         // Check if ToDate is greater than current date
-//         return res.status(200).send({
-//           message:
-//             "Cannot activate subcategory: ToDate must be greater than the current date.",
-//         });
-//       }
-
-//       // Update subcategory active status to true
-//       subcategory.active = true;
-
-//       // Fetch products for the current subcategory
-//       const productsSnapshot = await db
-//         .collection("products")
-//         .where("subcategory", "==", db.doc(`/subcategories/${subcategory.id}`))
-//         .get();
-
-//       const productsData = productsSnapshot.docs.map((doc) => ({
-//         id: doc.id,
-//         ...doc.data(),
-//       }));
-
-//       // Update products and carts
-//       const updatedProducts = await updateProducts(
-//         productsData,
-//         discountData.DiscountAmount
-//       );
-//       const cartsSnapshot = await db.collection("carts").get();
-//       await updateCarts(cartsSnapshot, updatedProducts);
-
-//       // Calculate the delay for reset based on ToDate
-//       const resetDelay = ToDate.diff(currentDate);
-//       const resetFunction = async () => {
-//         console.log(`Resetting products and carts for subcategory.`);
-
-//         // Reset products and carts
-//         const resetProductsArray = await resetProducts(productsData);
-//         const cartsSnapshot = await db.collection("carts").get();
-//         await resetCarts(cartsSnapshot, resetProductsArray);
-
-//         // Set subcategory active status to false
-//         subcategory.active = false;
-
-//         // Update the discount document with the modified subcategories
-//         discountData.subcategories = discountData.subcategories.map((sub) =>
-//           sub.id === subcategory.id ? subcategory : sub
-//         );
-//         await discountDocRef.update({
-//           subcategories: discountData.subcategories,
-//         });
-
-//         console.log(`Products and carts reset for subcategory.`);
-//       };
-
-//       // Schedule reset function based on resetDelay
-//       const resetTimeoutId = setTimeout(resetFunction, resetDelay);
-
-//       // Update the reset timeout ID for the subcategory
-//       subcategory.resetTimeoutId = resetTimeoutId.toString();
-//     } else {
-//       // Deactivating the subcategory
-//       subcategory.active = false;
-
-//       // Clear existing timeouts
-//       clearTimeout(Number(subcategory.updateTimeoutId));
-//       clearTimeout(Number(subcategory.resetTimeoutId));
-
-//       // Fetch products for the current subcategory
-//       const productsSnapshot = await db
-//         .collection("products")
-//         .where("subcategory", "==", db.doc(`/subcategories/${subcategory.id}`))
-//         .get();
-
-//       const productsData = productsSnapshot.docs.map((doc) => ({
-//         id: doc.id,
-//         ...doc.data(),
-//       }));
-
-//       // Reset products and carts
-//       const resetProductsArray = await resetProducts(productsData);
-//       const cartsSnapshot = await db.collection("carts").get();
-//       await resetCarts(cartsSnapshot, resetProductsArray);
-//     }
-
-//     // Update the discount document with the modified subcategories
-//     discountData.subcategories = discountData.subcategories.map((sub) =>
-//       sub.id === subcategory.id ? subcategory : sub
-//     );
-//     await discountDocRef.update({
-//       subcategories: discountData.subcategories,
-//     });
-
-//     // Return a success response
-//     const newStatus = subcategory.active;
-//     return res.status(200).send({
-//       message: `Subcategory status updated successfully to: ${newStatus}.`,
-//     });
-//   } catch (error) {
-//     console.error(`Error updating subcategory status: ${error.message}`);
-//     return res.status(200).send({
-//       message: `Error updating subcategory status: ${error.message}`,
-//     });
-//   }
-// };
-
 const updateSubcategoryStatus = async (req, res) => {
   try {
     const { discountId, subcategoryid } = req.params;
 
-    // Validate input
     if (!discountId) {
       return res.status(200).send({ message: "Discount ID is required." });
     }
@@ -1775,7 +1491,6 @@ const updateSubcategoryStatus = async (req, res) => {
       return res.status(200).send({ message: "Subcategory ID is required." });
     }
 
-    // Retrieve discount document
     const discountDocRef = db.collection("discounts").doc(discountId);
     const discountSnapshot = await discountDocRef.get();
 
@@ -1790,7 +1505,6 @@ const updateSubcategoryStatus = async (req, res) => {
       .add(5, "hours")
       .add(30, "minutes");
     const allUpdatedProducts = [];
-    // Find the specified subcategory
     const subcategory = discountData.subcategories.find(
       (sub) => sub.id === subcategoryid
     );
@@ -1804,19 +1518,15 @@ const updateSubcategoryStatus = async (req, res) => {
     const currentStatus = subcategory.active;
 
     if (!currentStatus) {
-      // If the current status is false, attempt to activate
       if (!ToDate.isAfter(currentDate)) {
-        // Check if ToDate is greater than current date
         return res.status(200).send({
           message:
             "Cannot activate subcategory: ToDate must be greater than the current date.",
         });
       }
 
-      // Update subcategory active status to true
       subcategory.active = true;
 
-      // Fetch products for the current subcategory
       const productsSnapshot = await db
         .collection("products")
         .where("subcategory", "==", db.doc(`/subcategories/${subcategory.id}`))
@@ -1830,30 +1540,24 @@ const updateSubcategoryStatus = async (req, res) => {
         });
       }
       console.log(allUpdatedProducts);
-      // Update products with discount and subcategory data
       const updatedProducts = await updateProducts(
         allUpdatedProducts,
         discountData.DiscountAmount
       );
 
-      // Update carts based on the updated products for the specified subcategory only
       const cartsSnapshot = await db.collection("carts").get();
       await updateCarts(cartsSnapshot, updatedProducts);
 
-      // Calculate reset delay based on ToDate
       const resetDelay = ToDate.diff(currentDate);
       const resetFunction = async () => {
         console.log(`Resetting products and carts for subcategory.`);
 
-        // Reset products and carts for the subcategory only
         const resetProductsArray = await resetProducts(allUpdatedProducts);
         const cartsSnapshot = await db.collection("carts").get();
         await resetCarts(cartsSnapshot, resetProductsArray);
 
-        // Set subcategory active status to false
         subcategory.active = false;
 
-        // Update the discount document with the modified subcategory
         discountData.subcategories = discountData.subcategories.map((sub) =>
           sub.id === subcategory.id ? subcategory : sub
         );
@@ -1864,36 +1568,29 @@ const updateSubcategoryStatus = async (req, res) => {
         console.log(`Products and carts reset for subcategory.`);
       };
 
-      // Schedule reset function based on reset delay
       const resetTimeoutId = setTimeout(resetFunction, resetDelay);
       subcategory.resetTimeoutId = resetTimeoutId.toString();
     } else {
-      // Deactivating the subcategory
       subcategory.active = false;
 
-      // Clear existing timeouts
       clearTimeout(Number(subcategory.updateTimeoutId));
       clearTimeout(Number(subcategory.resetTimeoutId));
 
-      // Fetch products for the current subcategory
       const productsSnapshot = await db
         .collection("products")
         .where("subcategory", "==", db.doc(`/subcategories/${subcategory.id}`))
         .get();
 
-      // Extract products data
       const productsData = productsSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
 
-      // Reset products and carts for the subcategory only
       const resetProductsArray = await resetProducts(productsData);
       const cartsSnapshot = await db.collection("carts").get();
       await resetCarts(cartsSnapshot, resetProductsArray);
     }
 
-    // Update the discount document with the modified subcategory
     discountData.subcategories = discountData.subcategories.map((sub) =>
       sub.id === subcategory.id ? subcategory : sub
     );
@@ -1901,7 +1598,6 @@ const updateSubcategoryStatus = async (req, res) => {
       subcategories: discountData.subcategories,
     });
 
-    // Return a success response
     const newStatus = subcategory.active;
     return res.status(200).send({
       message: `Subcategory status updated successfully to: ${newStatus}.`,

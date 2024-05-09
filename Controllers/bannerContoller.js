@@ -76,13 +76,8 @@ const deleteBanner = async (req, res) => {
     if (!bannerDoc.exists) {
       return res.status(200).send({ message: "Banner not found." });
     }
-
-    // Delete the banner's photo from storage
-
     const photoRef = ref(storage, `banners/${id}`);
     await deleteObject(photoRef);
-
-    // Delete the banner document from Firestore
     await bannerRef.delete();
 
     res.status(200).send({ message: "Banner deleted successfully" });

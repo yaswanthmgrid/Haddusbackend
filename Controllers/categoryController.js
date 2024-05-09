@@ -116,48 +116,40 @@ const getCategoryByName = async (req, res) => {
 
 const updateCategory = async (req, res) => {
   try {
-    const { categoryId } = req.params; // Changed from categoryName to categoryId
+    const { categoryId } = req.params;
     let { name } = req.body;
     const photo = req.file;
 
-    // Validate if name is provided and does not contain spaces
     if ((!name || name.trim() === "") && !photo) {
       return res.status(200).send({ message: "Change atleast one to update" });
     }
 
     if (!categoryId) {
-      // Changed from categoryName to categoryId
-      return res.status(200).send({ message: "categoryId is missing" }); // Changed from categoryName to categoryId
+      return res.status(200).send({ message: "categoryId is missing" });
     }
     if (req.file.size < 600 * 1024) {
       return res.status(200).json({ error: "Minimum Size must be 600 KB." });
     }
 
-    // Fetch the category document
     const categorySnapshot = await db
       .collection("categories")
-      .doc(categoryId) // Changed from categoryName to categoryId
+      .doc(categoryId)
       .get();
 
     if (!categorySnapshot.exists) {
-      // Check if the document exists
       return res.status(200).send({ message: "Category not found" });
     }
 
-    // Update data object
     const updateData = {};
-    // Remove leading and trailing spaces from name
     if (name !== undefined && name !== "") {
       name = name.trim();
       updateData.name = name;
     }
 
     if (photo) {
-      // Delete the existing photo in the storage
       const existingPhotoRef = ref(storage, `Categories/${categoryId}`);
       await deleteObject(existingPhotoRef);
 
-      // Upload new photo
       const storageRef = ref(storage, `Categories/${categoryId}`);
       const metadata = { contentType: photo.mimetype };
       const snapshot = await uploadBytesResumable(
@@ -169,7 +161,6 @@ const updateCategory = async (req, res) => {
       updateData.photo = imageUrl;
     }
 
-    // Update the category document
     await db.collection("categories").doc(categoryId).update(updateData);
 
     return res
@@ -234,7 +225,6 @@ const updateCategorytstatus = async (req, res) => {
   try {
     const { categoryname } = req.params;
 
-    // Check if the subcategory exists
     const categorySnapshot = await db
       .collection("categories")
       .where("name", "==", categoryname)
@@ -250,17 +240,14 @@ const updateCategorytstatus = async (req, res) => {
     const categoryData = categoryDoc.data();
     const categoryId = categoryDoc.id;
 
-    // Toggle the status of the subcategory
     const updatedStatus = !categoryData.active;
     await categoryDoc.ref.update({ active: updatedStatus });
 
-    // Get the products associated with the subcategory
     const subcategorySnapshot = await db
       .collection("subcategories")
       .where("category", "==", db.doc(`/categories/${categoryId}`))
       .get();
 
-    // Update the active status of each associated product
     const subcategoryUpdates = subcategorySnapshot.docs.map(
       async (subcategoryDoc) => {
         const updatedActiveValue = updatedStatus;
@@ -268,22 +255,18 @@ const updateCategorytstatus = async (req, res) => {
       }
     );
 
-    // Wait for all product updates to complete
     await Promise.all(subcategoryUpdates);
 
-    // Get the products associated with the subcategory
     const productSnapshot = await db
       .collection("products")
       .where("category", "==", db.doc(`/categories/${categoryId}`))
       .get();
 
-    // Update the active status of each associated product
     const productUpdates = productSnapshot.docs.map(async (productDoc) => {
       const updatedActiveValue = updatedStatus;
       await productDoc.ref.update({ active: updatedActiveValue });
     });
 
-    // Wait for all product updates to complete
     await Promise.all(productUpdates);
 
     return res.status(200).send({

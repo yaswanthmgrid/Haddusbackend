@@ -24,12 +24,9 @@ const CreateAdmin = async (req, res) => {
       return res.status(200).send({ message: "Enter a valid Phone Number" });
     }
     phone = parseInt(phone, 10);
-    // Check if email is valid
     if (!validator.isEmail(email)) {
       return res.status(200).send({ message: "Enter a valid Email Address" });
     }
-
-    // Check if password meets the criteria
     const passwordRegex =
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!passwordRegex.test(password)) {
@@ -38,7 +35,6 @@ const CreateAdmin = async (req, res) => {
           "Password must contain at least 8 characters, including one uppercase letter, one lowercase letter, one number, and one special character.",
       });
     }
-    // Create user authentication
     const adminData = {
       name: name,
       email: email,
@@ -51,8 +47,6 @@ const CreateAdmin = async (req, res) => {
       password
     );
 
-    // Save the admin data to the database
-    // Assuming you have a Firestore database reference called 'db'
     const adminRef = await db.collection("admins").add(adminData);
     const adminId = adminRef.id;
 
@@ -92,7 +86,7 @@ const loginAdmin = async (req, res) => {
       }
       const userDoc = emailSnapshot.docs[0];
       username = userDoc.data().name;
-      userid = userDoc.id; // Get userid from the document ID (if applicable)
+      userid = userDoc.id;
       userCredential = await signInWithEmailAndPassword(auth, email, password);
     } else if (phone) {
       const phoneSnapshot = await db
@@ -107,7 +101,7 @@ const loginAdmin = async (req, res) => {
       const userDoc = phoneSnapshot.docs[0];
       const userEmail = userDoc.data().email;
       username = userDoc.data().name;
-      userid = userDoc.id; // Get userid from the document ID (if applicable)
+      userid = userDoc.id;
       userCredential = await signInWithEmailAndPassword(
         auth,
         userEmail,
@@ -121,7 +115,7 @@ const loginAdmin = async (req, res) => {
       message: "Admin authenticated successfully",
       admin: user,
       name: username,
-      id: userid, // Send the admin ID in the response
+      id: userid,
     });
   } catch (error) {
     if (error.code === "auth/invalid-login-credentials") {
@@ -164,7 +158,6 @@ const updateAdmin = async (req, res) => {
       }
     }
 
-    // Check if a user with the new email or phone number already exists
     const emailQuerySnapshot = await db
       .collection("users")
       .where("email", "==", trimmedEmail)
@@ -195,7 +188,7 @@ const updateAdmin = async (req, res) => {
     }
 
     if (phoneNum !== null) {
-      updateData.phone = phoneNum; // Store phone as a number
+      updateData.phone = phoneNum;
     }
 
     if (trimmedEmail && trimmedEmail !== userData.email) {
@@ -213,7 +206,6 @@ const updateAdmin = async (req, res) => {
 
     console.log(`updateData: ${JSON.stringify(updateData)}`);
 
-    // Update the user document in Firestore
     await userRef.update(updateData);
 
     return res.status(200).send({ message: "User updated successfully" });
@@ -226,40 +218,31 @@ const updateAdmin = async (req, res) => {
 };
 const getAdmin = async (req, res) => {
   try {
-    // Query the "admins" collection
     const adminsSnapshot = await db.collection("admins").get();
 
-    // Check if there are no documents in the collection
     if (adminsSnapshot.empty) {
       return res.status(200).send({ message: "No admin found" });
     }
 
-    // Create an array to store the list of admins
     const admins = [];
 
-    // Loop through each document in the snapshot
     adminsSnapshot.forEach((doc) => {
-      // Get the admin data from the document
       const adminData = doc.data();
       const adminId = doc.id;
-      // Extract the desired fields
+
       const admin = {
         Id: adminId,
         name: adminData.name,
         email: adminData.email,
         phone: adminData.phone,
       };
-
-      // Add the admin object to the list
       admins.push(admin);
     });
 
-    // Send the list of admins as the response
     res
       .status(200)
       .send({ message: "Admin data retrieved successfully", admins });
   } catch (error) {
-    // Send an error response if there's an issue
     console.error("Error retrieving admin data:", error);
     res.status(200).send({ message: "Error retrieving admin data" });
   }
@@ -270,7 +253,6 @@ function isValidEmail(email) {
   return emailRegex.test(email);
 }
 
-// Function to validate phone number format (10 digits)
 function isValidPhoneNumber(phone) {
   const phoneRegex = /^\d{10}$/;
   return phoneRegex.test(phone);

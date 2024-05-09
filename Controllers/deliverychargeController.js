@@ -43,7 +43,7 @@ const getDeliveryCharges = async (req, res) => {
 
     deliveryChargeSnapshot.forEach((doc) => {
       const data = doc.data();
-      const id = doc.id; // Corrected access to document ID
+      const id = doc.id;
       const deliveryFee = data.deliveryFee;
 
       deliveryCharges.push({

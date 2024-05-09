@@ -69,7 +69,6 @@ const createCoupon = async (req, res) => {
         .send({ message: "From date must be in the future" });
     }
 
-    // Adjust timezone for consistency
     fromdate = moment
       .utc(fromdate)
       .subtract(5, "hours")
@@ -111,7 +110,6 @@ const createCoupon = async (req, res) => {
     const delayReset = moment(Inputtodate).diff(moment());
     console.log(delayUpdate, delayReset);
 
-    // Create setTimeouts and store their IDs in the coupon document
     const updateTimeoutId = setTimeout(async () => {
       console.log(
         "Update operation triggered at:",
@@ -143,7 +141,6 @@ const createCoupon = async (req, res) => {
       }
     }, delayReset);
 
-    // Store the setTimeout IDs in the coupon document
     await couponDocRef.update({
       timeouts: [
         { updateTimeoutId: String(updateTimeoutId) },
@@ -234,7 +231,6 @@ const updateCoupon = async (req, res) => {
 
     let { Fromdate, Todate, ...validUpdates } = req.body;
 
-    // Clear existing timeouts if Fromdate or Todate are provided
     if (Fromdate !== "" && couponSnapshot.data().timeouts) {
       clearTimeout(couponSnapshot.data().timeouts.updateTimeoutId);
     }
@@ -253,7 +249,6 @@ const updateCoupon = async (req, res) => {
 
       .toDate();
 
-    // Parse Fromdate and Todate strings into Date objects
     const parsedFromdate = Fromdate ? new Date(Fromdate) : undefined;
     const parsedTodate = Todate ? new Date(Todate) : undefined;
     const utcFromdate = parsedFromdate
@@ -279,7 +274,6 @@ const updateCoupon = async (req, res) => {
       return res.status(200).send({ message: `Todate must be in the Future` });
     }
 
-    // Update coupon fields
     await couponDocRef.update({
       Fromdate: ISTFromdate,
       Todate: ISTTodate,
@@ -287,14 +281,12 @@ const updateCoupon = async (req, res) => {
       ...validUpdates,
     });
 
-    // Calculate delays for setTimeout if either Fromdate or Todate is provided
     let updateTimeoutId;
     if (parsedFromdate) {
       const currentTime = new Date();
       const delayUpdate = parsedFromdate - currentTime;
       const delayReset = parsedTodate - currentTime;
       console.log(delayUpdate, delayReset);
-      // Schedule setTimeout function for update
       updateTimeoutId = setTimeout(async () => {
         await couponDocRef.update({ Status: true });
       }, delayUpdate);
@@ -303,7 +295,6 @@ const updateCoupon = async (req, res) => {
         await couponDocRef.update({ Status: false });
       }, delayReset);
 
-      // Store the updateTimeoutId in the coupon document
       await couponDocRef.update({
         timeouts: {
           updateTimeoutId: String(updateTimeoutId),
@@ -316,12 +307,10 @@ const updateCoupon = async (req, res) => {
       const currentTime = new Date();
       const delayReset = parsedTodate - currentTime;
 
-      // Schedule setTimeout function for reset
       const resetTimeoutId = setTimeout(async () => {
         await couponDocRef.update({ Status: false });
       }, delayReset);
 
-      // Store the resetTimeoutId in the coupon document
       await couponDocRef.update({
         timeouts: {
           updateTimeoutId: String(updateTimeoutId),
@@ -352,7 +341,7 @@ const updateCouponstatus = async (req, res) => {
       return res.status(200).send({ message: `Coupon not found with that ID` });
     }
 
-    const currentDate = moment(); // Get current date and time
+    const currentDate = moment();
 
     const todate = moment(couponSnapshot.data().Todate.toDate());
     const Inputtodate = moment.utc(todate).add(5, "hours").add(30, "minutes");
@@ -387,26 +376,22 @@ const applyCoupon = async (req, res) => {
     const { userId } = req.params;
     const { couponId } = req.body;
 
-    // Get cart data
     const cartSnapshot = await db.collection("carts").doc(userId).get();
     const cartData = cartSnapshot.data();
     if (!cartData) {
       return { success: false, message: `Cart not found with id: ${userId}` };
     }
 
-    // Get coupon data
     const couponSnapshot = await db.collection("coupons").doc(couponId).get();
     const couponData = couponSnapshot.data();
     if (!couponData || couponData.Status === false) {
       return { success: false, message: `Invalid or unavailable coupon` };
     }
 
-    // Check the cart bill
     if (cartData.bill == 0) {
       return { success: false, message: `Can't apply coupon for empty cart` };
     }
 
-    // Calculate final bill
     let finalBill = cartData.bill;
     if (couponData.Coupontype === "Percentage") {
       finalBill *= 1 - couponData.CouponAmount / 100;
@@ -415,10 +400,8 @@ const applyCoupon = async (req, res) => {
     }
     finalBill = Math.ceil(finalBill);
 
-    // Calculate coupon discount
     const couponDiscount = cartData.bill - finalBill;
 
-    // Update cart data with final bill and coupon details
     await cartSnapshot.ref.update({
       Finalbill: finalBill,
       couponId: couponId,
@@ -451,7 +434,6 @@ const removeCoupon = async (req, res) => {
       return res.status(200).send({ message: "Cart not found" });
     }
 
-    // Calculate the new bill as the sum of price2 values in the products array
     let newBill = 0;
     cartData.products.forEach((product) => {
       newBill += product.price2;
