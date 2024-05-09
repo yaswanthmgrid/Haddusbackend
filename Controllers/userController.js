@@ -4,7 +4,7 @@ const multer = require("multer");
 const { createUserCart } = require("./cartController");
 const { createUserSchema } = require("../Models/userModel");
 const { registerNotification } = require("./notificationController");
-
+const { verifyToken } = require("../Middleware/otpVerification");
 const {
   getAuth,
   createUserWithEmailAndPassword,

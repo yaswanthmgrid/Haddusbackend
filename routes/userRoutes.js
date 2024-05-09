@@ -1,6 +1,6 @@
 const express = require("express");
 const usersController = require("../Controllers/userController");
-const { refreshAccessToken } = require("../Middleware/userAuth");
+const { refreshAccessToken, verifyToken } = require("../Middleware/userAuth");
 const router = express.Router();
 router.use(express.json());
 router.post("/user/refreshtoken", refreshAccessToken);
@@ -15,7 +15,11 @@ router.get("/users/name/:name", usersController.getUserByName);
 router.get("/users/email/:email", usersController.getUserByEmail);
 router.get("/users/alladdress/:userId", usersController.getAllAddresses);
 
-router.patch("/users/updateDetails/:userId", usersController.updateUser);
+router.patch(
+  "/users/updateDetails/:userId",
+  verifyToken,
+  usersController.updateUser
+);
 
 router.patch("/users/editaddress/:userId/:index", usersController.editAddress);
 
