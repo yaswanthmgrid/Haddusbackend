@@ -65,9 +65,6 @@ const updateCarts = async (cartsSnapshot, updatedProducts) => {
         );
 
         if (updatedProduct) {
-          const discountPrice = updatedProduct.DiscountPrice || 0;
-          const taxedPrice = updatedProduct.taxedPrice || 0;
-
           if (discountPrice > 0) {
             product.price = discountPrice;
           } else {
@@ -1482,7 +1479,6 @@ const updateSubcategoryStatus = async (req, res) => {
       }
 
       subcategory.active = true;
-
       const productsSnapshot = await db
         .collection("products")
         .where("subcategory", "==", db.doc(`/subcategories/${subcategory.id}`))
@@ -1495,7 +1491,7 @@ const updateSubcategoryStatus = async (req, res) => {
           });
         });
       }
-      console.log(allUpdatedProducts);
+      console.log(`111111111111111111111`, allUpdatedProducts);
       const updatedProducts = await updateProducts(
         allUpdatedProducts,
         discountData.DiscountAmount
