@@ -127,9 +127,6 @@ const updateCategory = async (req, res) => {
     if (!categoryId) {
       return res.status(200).send({ message: "categoryId is missing" });
     }
-    if (req.file.size < 600 * 1024) {
-      return res.status(200).json({ error: "Minimum Size must be 600 KB." });
-    }
 
     const categorySnapshot = await db
       .collection("categories")

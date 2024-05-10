@@ -287,9 +287,7 @@ const updateSubcat = async (req, res) => {
     if (!subcategoryId) {
       return res.status(200).send({ message: "SubcategoryId is missing" });
     }
-    if (req.file.size < 600 * 1024) {
-      return res.status(200).json({ error: "Minimum Size must be 600 KB." });
-    }
+
     // Fetch the subcategory document
     const subcategoryRef = db.collection("subcategories").doc(subcategoryId);
     const subcategorySnapshot = await subcategoryRef.get();

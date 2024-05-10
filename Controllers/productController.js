@@ -820,9 +820,7 @@ const updateProduct = async (req, res) => {
     name = name.trim();
 
     const photo = req.file;
-    if (req.file.size < 600 * 1024) {
-      return res.status(200).json({ error: "Minimum Size must be 600 KB." });
-    }
+
     // Check if all required fields are present
     if (!category || !subcategory || !name || !price) {
       return res
