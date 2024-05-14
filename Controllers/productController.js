@@ -14,6 +14,7 @@ const {
 const db = admin.firestore(adminApp);
 const storage = getStorage(app);
 const upload = multer({ storage: multer.memoryStorage() });
+
 const createProduct = async (req, res) => {
   try {
     // Validate the request body using the productSchema
@@ -673,135 +674,6 @@ const getProductsbyType = async (req, res) => {
   }
 };
 
-// const updateProduct = async (req, res) => {
-//   try {
-//     // Validate the request body using the productSchema
-//     const { error, value } = productSchema.validate(req.body);
-//     if (error) {
-//       return res.status(200).send({ message: `${error.message}` });
-//     }
-
-//     // Get productId from request params
-//     const { productId } = req.params;
-
-//     // Destructure the required fields from the request body
-//     let { category, subcategory, name, price, type, tax } = value;
-//     category = category.trim();
-//     subcategory = subcategory.trim();
-//     name = name.trim();
-
-//     const photo = req.file;
-//     if (req.file.size < 600 * 1024) {
-//       return res.status(200).json({ error: "Minimum Size must be 600 KB." });
-//     }
-//     // Check if all required fields are present
-//     if (!category || !subcategory || !name || !price) {
-//       return res
-//         .status(200)
-//         .send({ message: "All fields are required to update a product" });
-//     }
-
-//     // Check if the product to update exists
-//     const productSnapshot = await db
-//       .collection("products")
-//       .doc(productId)
-//       .get();
-
-//     if (!productSnapshot.exists) {
-//       return res
-//         .status(200)
-//         .send({ message: `Product with ID ${productId} not found` });
-//     }
-
-//     // Extract existing product data
-//     const productData = productSnapshot.data();
-
-//     // Check if the category exists
-//     const categorySnapshot = await db
-//       .collection("categories")
-//       .where("name", "==", category)
-//       .get();
-//     if (categorySnapshot.empty) {
-//       return res
-//         .status(200)
-//         .send({ message: `Category: ${category} not found` });
-//     }
-//     const categoryId = categorySnapshot.docs[0].id;
-
-//     // Check if the subcategory exists under the specified category
-//     const subcategorySnapshot = await db
-//       .collection("subcategories")
-//       .where("category", "==", db.doc(`/categories/${categoryId}`))
-//       .where("name", "==", subcategory)
-//       .get();
-//     if (subcategorySnapshot.empty) {
-//       return res.status(200).send({
-//         message: `Subcategory: ${subcategory} not found under category: ${category}`,
-//       });
-//     }
-//     const subcategoryId = subcategorySnapshot.docs[0].id;
-
-//     // Check if any field actually needs updating
-//     const updateFields = {};
-//     if (category !== productData.category) {
-//       updateFields.category = db.doc(`/categories/${categoryId}`);
-//     }
-//     if (subcategory !== productData.subcategory) {
-//       updateFields.subcategory = db.doc(`/subcategories/${subcategoryId}`);
-//     }
-//     if (name !== productData.name) {
-//       updateFields.name = name;
-//     }
-//     if (price !== productData.price) {
-//       updateFields.price = price;
-//     }
-//     if (tax !== productData.GST) {
-//       updateFields.GST = tax;
-//     }
-//     if (category === "Restaurant" && type && type !== productData.type) {
-//       updateFields.type = type;
-//     } else if (category !== "Restaurant" && productData.type) {
-//       updateFields.type = null;
-//     }
-
-//     // Check if a new photo is provided
-//     let imageUrl = null;
-//     if (photo) {
-//       // Delete existing photo from storage
-//       if (productData.photo) {
-//         const storageRef = ref(storage, productData.photo);
-//         await deleteObject(storageRef);
-//       }
-
-//       // Upload the new photo
-//       const storageRef = ref(storage, `Products/${productId}`);
-//       const metadata = { contentType: photo.mimetype };
-//       const snapshot = await uploadBytesResumable(
-//         storageRef,
-//         photo.buffer,
-//         metadata
-//       );
-//       imageUrl = await getDownloadURL(snapshot.ref);
-//       updateFields.photo = imageUrl;
-//     }
-
-//     // Calculate taxed price if tax (GST) is provided
-//     if (typeof tax === "number" && tax > 0 && tax <= 100) {
-//       const taxedPrice = price * (1 + tax / 100);
-//       updateFields.taxedPrice = taxedPrice;
-//     }
-
-//     // If there are fields to update, apply the update
-//     if (Object.keys(updateFields).length > 0) {
-//       await db.collection("products").doc(productId).update(updateFields);
-//     }
-
-//     return res.status(200).send({ message: "Product updated successfully" });
-//   } catch (error) {
-//     console.error("Error updating product: " + error.message);
-//     return res.status(200).send("Error updating product: " + error.message);
-//   }
-// };
 const updateProduct = async (req, res) => {
   try {
     // Validate the request body using the productSchema
@@ -1168,6 +1040,5 @@ module.exports = {
   updateproductstatus,
   createAddon,
   editAddon,
-
   updateAddonStatus,
 };
