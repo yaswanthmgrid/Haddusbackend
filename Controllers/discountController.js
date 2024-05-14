@@ -53,6 +53,78 @@ const resetProducts = async (allUpdatedProducts) => {
   return resetProductsArray;
 };
 
+// const updateCarts = async (cartsSnapshot, updatedProducts) => {
+//   const cartsToUpdatePromises = cartsSnapshot.docs.map(async (cartDoc) => {
+//     const cartData = cartDoc.data();
+//     let newBill = 0;
+
+//     if (cartData.products && Array.isArray(cartData.products)) {
+//       cartData.products.forEach((product) => {
+//         const updatedProduct = updatedProducts.find(
+//           (p) => p.id === product.productId
+//         );
+
+//         if (updatedProduct) {
+//           const discountPrice = updatedProduct.DiscountPrice || 0;
+//           const taxedPrice = updatedProduct.taxedPrice || 0;
+//           if (discountPrice > 0) {
+//             product.price = discountPrice;
+//           } else {
+//             product.price = taxedPrice;
+//           }
+
+//           product.price2 = product.price * product.quantity;
+//           if (product.addOns && Array.isArray(product.addOns)) {
+//             product.addOns.forEach((addon) => {
+//               product.price2 += addon.price * product.quantity;
+//             });
+//           }
+//           newBill += product.price2;
+//         } else {
+//           const discountPrice = product.DiscountPrice || 0;
+//           const taxedPrice = product.taxedPrice || 0;
+
+//           if (discountPrice > 0) {
+//             product.price = discountPrice;
+//           } else {
+//             product.price = taxedPrice;
+//           }
+
+//           product.price2 = product.price * product.quantity;
+//           if (product.addOns && Array.isArray(product.addOns)) {
+//             product.addOns.forEach((addon) => {
+//               product.price2 += addon.price * product.quantity;
+//             });
+//           }
+
+//           newBill += product.price2;
+//         }
+//       });
+
+//       const updateData = {
+//         products: cartData.products,
+//         bill: newBill,
+//       };
+
+//       if (cartData.Finalbill !== undefined) {
+//         updateData.Finalbill = cartData.Finalbill;
+//       }
+//       if (cartData.couponId !== undefined) {
+//         updateData.couponId = cartData.couponId;
+//       }
+//       if (cartData.couponAmount !== undefined) {
+//         updateData.couponAmount = cartData.couponAmount;
+//       }
+
+//       await cartDoc.ref.update(updateData);
+//     } else {
+//       console.log(`No products found for cart: ${cartDoc.id}`);
+//     }
+//   });
+
+//   await Promise.all(cartsToUpdatePromises);
+// };
+
 const updateCarts = async (cartsSnapshot, updatedProducts) => {
   const cartsToUpdatePromises = cartsSnapshot.docs.map(async (cartDoc) => {
     const cartData = cartDoc.data();
@@ -65,6 +137,8 @@ const updateCarts = async (cartsSnapshot, updatedProducts) => {
         );
 
         if (updatedProduct) {
+          const discountPrice = updatedProduct.DiscountPrice || 0;
+          const taxedPrice = updatedProduct.taxedPrice || 0;
           if (discountPrice > 0) {
             product.price = discountPrice;
           } else {
@@ -77,24 +151,6 @@ const updateCarts = async (cartsSnapshot, updatedProducts) => {
               product.price2 += addon.price * product.quantity;
             });
           }
-          newBill += product.price2;
-        } else {
-          const discountPrice = product.DiscountPrice || 0;
-          const taxedPrice = product.taxedPrice || 0;
-
-          if (discountPrice > 0) {
-            product.price = discountPrice;
-          } else {
-            product.price = taxedPrice;
-          }
-
-          product.price2 = product.price * product.quantity;
-          if (product.addOns && Array.isArray(product.addOns)) {
-            product.addOns.forEach((addon) => {
-              product.price2 += addon.price * product.quantity;
-            });
-          }
-
           newBill += product.price2;
         }
       });
@@ -123,19 +179,97 @@ const updateCarts = async (cartsSnapshot, updatedProducts) => {
   await Promise.all(cartsToUpdatePromises);
 };
 
+// const resetCarts = async (cartsSnapshot, resetProductsArray)  => {
+//   const cartsResetPromises = cartsSnapshot.docs.map(async (cartDoc) => {
+//     const cartData = cartDoc.data();
+//     let newBill = 0;
+//     if (cartData.products && Array.isArray(cartData.products)) {
+//       cartData.products.forEach((product) => {
+//         const resetProduct = resetProductsArray.find(
+//           (p) => p.id === product.productId
+//         );
+
+//         if (resetProduct) {
+//           product.price = resetProduct.taxedPrice || 0;
+//           product.price2 = product.price * product.quantity;
+//         }
+//         if (updatedProduct) {
+//           const discountPrice = updatedProduct.DiscountPrice || 0;
+//           const taxedPrice = updatedProduct.taxedPrice || 0;
+//           if (discountPrice > 0) {
+//             product.price = discountPrice;
+//           } else {
+//             product.price = taxedPrice;
+//           }
+
+//           product.price2 = product.price * product.quantity;
+//           if (product.addOns && Array.isArray(product.addOns)) {
+//             product.addOns.forEach((addon) => {
+//               product.price2 += addon.price * product.quantity;
+//             });
+//           }
+//           newBill += product.price2;
+//         } else {
+//           const discountPrice = product.DiscountPrice || 0;
+//           const taxedPrice = product.taxedPrice || 0;
+
+//           if (discountPrice > 0) {
+//             product.price = discountPrice;
+//           } else {
+//             product.price = taxedPrice;
+//           }
+
+//           product.price2 = product.price * product.quantity;
+//           if (product.addOns && Array.isArray(product.addOns)) {
+//             product.addOns.forEach((addon) => {
+//               product.price2 += addon.price * product.quantity;
+//             });
+//           }
+
+//           newBill += product.price2;
+//         }
+//       });
+
+//       cartData.products.forEach((product) => {
+//         newBill += product.price2;
+//       });
+
+//       await cartDoc.ref.update({
+//         products: cartData.products,
+//         bill: newBill,
+//         Finalbill: cartData.Finalbill,
+//         couponId: cartData.couponId,
+//         couponAmount: cartData.couponAmount,
+//       });
+//     } else {
+//       console.log(`No products found for cart: ${cartDoc.id}`);
+//     }
+//   });
+
+//   await Promise.all(cartsResetPromises);
+// };
+
 const resetCarts = async (cartsSnapshot, resetProductsArray) => {
   const cartsResetPromises = cartsSnapshot.docs.map(async (cartDoc) => {
     const cartData = cartDoc.data();
+
     let newBill = 0;
     if (cartData.products && Array.isArray(cartData.products)) {
       cartData.products.forEach((product) => {
         const resetProduct = resetProductsArray.find(
           (p) => p.id === product.productId
         );
-
+        console.log(product);
         if (resetProduct) {
-          product.price = resetProduct.taxedPrice || 0;
+          product.price = resetProduct.taxedPrice;
+
           product.price2 = product.price * product.quantity;
+          if (product.addOns && Array.isArray(product.addOns)) {
+            product.addOns.forEach((addon) => {
+              product.price2 += addon.price * product.quantity;
+            });
+          }
+          newBill += product.price2;
         }
       });
 
@@ -1436,7 +1570,6 @@ const updateSubcategoryDiscount = async (req, res) => {
 const updateSubcategoryStatus = async (req, res) => {
   try {
     const { discountId, subcategoryid } = req.params;
-
     if (!discountId) {
       return res.status(200).send({ message: "Discount ID is required." });
     }
@@ -1467,14 +1600,13 @@ const updateSubcategoryStatus = async (req, res) => {
         message: "Subcategory not found in the discount document.",
       });
     }
-
+    const subcategoryName = subcategory.name;
     const currentStatus = subcategory.active;
 
     if (!currentStatus) {
       if (!ToDate.isAfter(currentDate)) {
         return res.status(200).send({
-          message:
-            "Cannot activate subcategory: ToDate must be greater than the current date.",
+          message: `Cannot activate ${subcategoryName} subcategory: ToDate must be greater than the current date.`,
         });
       }
 
