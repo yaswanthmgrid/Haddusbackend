@@ -79,7 +79,7 @@ const createUser = async (req, res) => {
     await db.collection("users").doc(userId).set(newUser);
 
     await createUserCart(userId);
-
+    await registerNotification(userId);
     res.status(201).send({
       message: "User created successfully",
     });
