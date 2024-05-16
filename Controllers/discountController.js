@@ -589,6 +589,7 @@ const createDiscount = async (req, res) => {
                 })),
                 active: true,
               });
+              console.log(`updated status to true`);
 
               console.log("Subcategories updated.");
             };
@@ -994,6 +995,7 @@ const getallDiscount = async (req, res) => {
           .toDate();
 
         const subcategoryObj = {
+          id: subcategory.id,
           name: subcategory.name,
           discount: subcategory.DiscountAmount,
           FromDate: subFromDate.toLocaleString(),
@@ -1017,7 +1019,9 @@ const getallDiscount = async (req, res) => {
     });
 
     if (discounts.length === 0) {
-      res.status(200).send({ message: "No Discounts found" });
+      res
+        .status(200)
+        .send({ message: "No Discounts found", Discounts: discounts });
     } else {
       res.status(200).send({ message: "All Discounts", Discounts: discounts });
     }
@@ -1176,7 +1180,7 @@ const updateDiscount = async (req, res) => {
           );
         }
       };
-
+      await resetFunction();
       const updateTimeoutId = setTimeout(updateFunction, updateDelay);
       subcategory.updateTimeoutId = String(updateTimeoutId);
 
@@ -1268,16 +1272,15 @@ const updateDiscountStatus = async (req, res) => {
       });
     } else {
       const currentDate = moment();
-      const FromDate = moment(discountDocSnapshot.data().FromDate.toDate())
-        .utc()
-        .add(11, "hours");
       const ToDate = moment(discountDocSnapshot.data().ToDate.toDate())
         .utc()
         .add(5, "hours")
         .add(30, "minutes");
 
-      console.log(currentDate);
-      console.log(`11111111111`, FromDate, ToDate);
+      const delay = ToDate - currentDate;
+      console.log(`delay`, delay);
+      console.log(`current :`, currentDate);
+      console.log(`todate`, ToDate);
       if (ToDate.isAfter(currentDate)) {
         await discountDocRef.update({ active: true });
 
