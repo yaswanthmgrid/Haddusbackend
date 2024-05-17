@@ -986,12 +986,14 @@ const getallDiscount = async (req, res) => {
           .utc(subcategory.FromDate.toDate())
           .add(5, "hours")
           .add(30, "minutes")
+
           .toDate();
 
         const subToDate = moment
           .utc(subcategory.ToDate.toDate())
           .add(5, "hours")
           .add(30, "minutes")
+
           .toDate();
 
         const subcategoryObj = {
@@ -1518,31 +1520,74 @@ const updateSubcategoryDiscount = async (req, res) => {
         });
       };
 
+      // const resetFunction = async () => {
+      //   console.log(`Resetting products for subcategory: ${subcategory.name}`);
+      //   const resetProductsArray = await resetProducts(allUpdatedProducts);
+      //   console.log(`Products reset for subcategory: ${subcategory.name}`);
+
+      //   const cartsSnapshot = await db.collection("carts").get();
+      //   await resetCarts(cartsSnapshot, resetProductsArray);
+      //   console.log(`Carts reset for subcategory: ${subcategory.name}`);
+
+      //   subcategory.active = false;
+      //   await discountDocRef.update({
+      //     subcategories,
+      //   });
+
+      //   const allSubcategoriesInactive = subcategories.every(
+      //     (sub) => !sub.active
+      //   );
+
+      //   if (allSubcategoriesInactive) {
+      //     await discountDocRef.update({
+      //       active: false,
+      //     });
+      //     console.log(
+      //       `All subcategories are inactive. Setting discount active field to false.`
+      //     );
+      //   }
+      // };
+
       const resetFunction = async () => {
-        console.log(`Resetting products for subcategory: ${subcategory.name}`);
-        const resetProductsArray = await resetProducts(allUpdatedProducts);
-        console.log(`Products reset for subcategory: ${subcategory.name}`);
-
-        const cartsSnapshot = await db.collection("carts").get();
-        await resetCarts(cartsSnapshot, resetProductsArray);
-        console.log(`Carts reset for subcategory: ${subcategory.name}`);
-
-        subcategory.active = false;
-        await discountDocRef.update({
-          subcategories,
-        });
-
-        const allSubcategoriesInactive = subcategories.every(
-          (sub) => !sub.active
-        );
-
-        if (allSubcategoriesInactive) {
-          await discountDocRef.update({
-            active: false,
-          });
+        try {
           console.log(
-            `All subcategories are inactive. Setting discount active field to false.`
+            `Resetting products for subcategory: ${subcategory.name}`
           );
+          const resetProductsArray = await resetProducts(allUpdatedProducts);
+          console.log(
+            `Products reset for subcategory: ${subcategory.name}`,
+            resetProductsArray
+          );
+
+          const cartsSnapshot = await db.collection("carts").get();
+          await resetCarts(cartsSnapshot, resetProductsArray);
+          console.log(`Carts reset for subcategory: ${subcategory.name}`);
+
+          // Ensure subcategories array reflects the reset state
+          const updatedSubcategories = subcategories.map((sub) =>
+            sub.id === subcategory.id ? { ...sub, active: false } : sub
+          );
+
+          await discountDocRef.update({
+            subcategories: updatedSubcategories,
+          });
+          console.log(`Updated subcategory ${subcategory.name} to inactive`);
+
+          // Check if all subcategories are inactive
+          const allSubcategoriesInactive = updatedSubcategories.every(
+            (sub) => !sub.active
+          );
+
+          if (allSubcategoriesInactive) {
+            await discountDocRef.update({
+              active: false,
+            });
+            console.log(
+              `All subcategories are inactive. Setting discount active field to false.`
+            );
+          }
+        } catch (error) {
+          console.error("Error resetting subcategory:", error);
         }
       };
 
